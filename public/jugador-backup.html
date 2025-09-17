@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Jugador - Bingo</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      margin: 20px auto;
+    }
+    td {
+      border: 1px solid #333;
+      width: 60px;
+      height: 60px;
+      text-align: center;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    td.marcado {
+      background-color: lightgreen;
+    }
+    #mensaje {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+      color: darkred;
+    }
+    #numerosCantados {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    #numerosCantados span {
+      margin: 3px;
+      padding: 5px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      display: inline-block;
+      min-width: 30px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">Cartón del Jugador</h1>
+  <table id="carton"></table>
+  <div id="mensaje"></div>
+
+  <h3 style="text-align:center;">Números cantados:</h3>
+  <div id="numerosCantados"></div>
+
+  <!-- Conexión a Socket.IO -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const carton = document.getElementById('carton');
+    const mensaje = document.getElementById('mensaje');
+    const numerosCantadosDiv = document.getElementById('numerosCantados');
+    const size = 5;
+
+    // Generar cartón aleatorio
+    const numeros = Array.from({ length: 75 }, (_, i) => i + 1);
+    numeros.sort(() => Math.random() - 0.5);
+    const cartonNumeros = numeros.slice(0, size * size);
+
+    // Construir tabla 5x5
+    for (let fila = 0; fila < size; fila++) {
+      const tr = document.createElement('tr');
+      for (let col = 0; col < size; col++) {
+        const numero = cartonNumeros[fila * size + col];
+        const td = document.createElement('td');
+        td.textContent = numero;
+        td.dataset.numero = numero;
+        td.dataset.fila = fila;
+        td.dataset.col = col;
+
+        // Marcar manualmente
+        td.addEventListener('click', () => {
+          td.classList.toggle('marcado');
+          verificarBingo();
+        });
+
+        tr.appendChild(td);
+      }
+      carton.appendChild(tr);
+    }
+
+    // Conectar con el servidor
+    const socket = io(); 
+
+    socket.on('connect', () => console.log('Jugador conectado al servidor!'));
+
+    // Cuando el moderador saca un número
+    socket.on("nuevoNumero", (numero) => {
+      console.log("Número recibido:", numero);
+
+      // Mostrarlo debajo del cartón
+      const span = document.createElement("span");
+      span.textContent = numero;
+      numerosCantadosDiv.appendChild(span);
+    });
+
+    // Recibir historial al conectarse
+    socket.on("historial", (historial) => {
+      historial.forEach(numero => {
+        const span = document.createElement("span");
+        span.textContent = numero;
+        numerosCantadosDiv.appendChild(span);
+      });
+    });
+
+// Guardamos los Bingos ya anunciados
+const bingosAnunciados = new Set();
+
+function verificarBingo() {
+  const matriz = [];
+  for (let f = 0; f < size; f++) {
+    matriz[f] = [];
+    for (let c = 0; c < size; c++) {
+      const celda = carton.querySelector(`td[data-fila="${f}"][data-col="${c}"]`);
+      matriz[f][c] = celda.classList.contains('marcado');
+    }
+  }
+
+  // Revisar horizontales
+  for (let f = 0; f < size; f++) {
+    if (matriz[f].every(x => x)) {
+      anunciarSiNuevo(`Bingo en línea horizontal ${f + 1}`);
+    }
+  }
+
+  // Revisar verticales
+  for (let c = 0; c < size; c++) {
+    if (matriz.every(fila => fila[c])) {
+      anunciarSiNuevo(`Bingo en línea vertical ${c + 1}`);
+    }
+  }
+
+  // Diagonal principal
+  if (matriz.every((fila, i) => fila[i])) {
+    anunciarSiNuevo("Bingo en diagonal principal");
+  }
+
+  // Diagonal secundaria
+  if (matriz.every((fila, i) => fila[size - 1 - i])) {
+    anunciarSiNuevo("Bingo en diagonal secundaria");
+  }
+
+    // Cartón lleno
+  const todoMarcado = matriz.every(fila => fila.every(celda => celda));
+  if (todoMarcado) {
+    anunciarSiNuevo("¡Bingo de cartón lleno!");
+  }
+}
+
+function anunciarSiNuevo(texto) {
+  if (!bingosAnunciados.has(texto)) {
+    bingosAnunciados.add(texto);
+
+    const aviso = document.createElement("p");
+    aviso.textContent = texto;
+    mensaje.appendChild(aviso);
+
+    setTimeout(() => {
+      if (mensaje.contains(aviso)) {
+        mensaje.removeChild(aviso);
+      }
+    }, 5000);
+  }
+}
+
+
+  </script>
+</body>
+</html>

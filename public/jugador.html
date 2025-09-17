@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Bingo Jugador</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      margin: 20px auto;
+    }
+    td {
+      border: 1px solid black;
+      width: 120px;
+      height: 90px;
+      text-align: center;
+      vertical-align: middle;
+      cursor: pointer;
+      padding: 5px;
+    }
+    td.marcado {
+      background-color: yellow;
+    }
+    #avisos {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      color: green;
+    }
+    .numero {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .momento {
+      font-size: 12px;
+      margin-top: 5px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">Cartón de Bingo</h1>
+  <table id="carton"></table>
+  <div id="avisos"></div>
+
+  <script>
+    let carton = [];
+    let avisosMostrados = new Set();
+
+    // Generar el cartón
+    async function generarCarton() {
+      const res = await fetch("momentos.json");
+      const momentos = await res.json();
+      const total = momentos.length;
+
+      // Números de 1 a total
+      const numeros = Array.from({ length: total }, (_, i) => i + 1);
+      numeros.sort(() => Math.random() - 0.5);
+
+      // Tomar los primeros 25
+      carton = numeros.slice(0, 25);
+
+      const tabla = document.getElementById("carton");
+      let idx = 0;
+
+      for (let i = 0; i < 5; i++) {
+        const fila = document.createElement("tr");
+        for (let j = 0; j < 5; j++) {
+          const numero = carton[idx];
+          const momento = momentos.find(m => m.numero === numero);
+
+          const celda = document.createElement("td");
+          celda.dataset.numero = numero;
+
+          celda.innerHTML = `
+            <span class="numero">${numero}</span>
+            <span class="momento">${momento ? momento.momento : ""}</span>
+          `;
+
+          celda.addEventListener("click", () => {
+            celda.classList.toggle("marcado");
+            verificarBingo();
+          });
+
+          fila.appendChild(celda);
+          idx++;
+        }
+        tabla.appendChild(fila);
+      }
+    }
+
+    // Verificar bingo
+    function verificarBingo() {
+      const filas = document.querySelectorAll("#carton tr");
+      const ganadores = [];
+
+      // Filas
+      filas.forEach((fila, i) => {
+        if ([...fila.children].every(td => td.classList.contains("marcado"))) {
+          ganadores.push(`Bingo en fila ${i + 1}`);
+        }
+      });
+
+      // Columnas
+      for (let j = 0; j < 5; j++) {
+        const col = [...filas].map(fila => fila.children[j]);
+        if (col.every(td => td.classList.contains("marcado"))) {
+          ganadores.push(`Bingo en columna ${j + 1}`);
+        }
+      }
+
+      // Diagonales
+      const diag1 = [...filas].map((fila, i) => fila.children[i]);
+      if (diag1.every(td => td.classList.contains("marcado"))) {
+        ganadores.push("Bingo en diagonal principal");
+      }
+      const diag2 = [...filas].map((fila, i) => fila.children[4 - i]);
+      if (diag2.every(td => td.classList.contains("marcado"))) {
+        ganadores.push("Bingo en diagonal secundaria");
+      }
+
+      // Cartón lleno
+      const todas = [...document.querySelectorAll("#carton td")];
+      if (todas.every(td => td.classList.contains("marcado"))) {
+        ganadores.push("¡Cartón lleno!");
+      }
+
+      mostrarAvisos(ganadores);
+    }
+
+    function mostrarAvisos(mensajes) {
+      const avisosDiv = document.getElementById("avisos");
+      mensajes.forEach(msg => {
+        if (!avisosMostrados.has(msg)) {
+          avisosMostrados.add(msg);
+          const aviso = document.createElement("div");
+          aviso.textContent = msg;
+          avisosDiv.appendChild(aviso);
+          setTimeout(() => {
+            avisosDiv.removeChild(aviso);
+            avisosMostrados.delete(msg);
+          }, 5000);
+        }
+      });
+    }
+
+    generarCarton();
+  </script>
+</body>
+</html>

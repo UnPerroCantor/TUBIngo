@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Moderador - Bingo</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 20px; }
+    button { padding: 10px 20px; font-size: 16px; }
+    .numeros { margin-top: 20px; }
+    .numero { display: inline-block; margin: 3px; padding: 8px; border: 1px solid #444; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Moderador</h1>
+  <button id="sacarNumero">Sacar número</button>
+  <div class="numeros">
+    <h3>Números cantados:</h3>
+    <div id="historial"></div>
+  </div>
+
+  <!-- Conexión a Socket.IO -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io(); // Conecta con el servidor
+
+    const historialDiv = document.getElementById("historial");
+
+    // Mostrar los números que ya salieron al conectarse
+    socket.on("historial", (historial) => {
+      historialDiv.innerHTML = "";
+      historial.forEach(n => {
+        const span = document.createElement("span");
+        span.textContent = n;
+        span.classList.add("numero");
+        historialDiv.appendChild(span);
+      });
+    });
+
+    // Mostrar número nuevo cuando el moderador lo saca
+    socket.on("nuevoNumero", (numero) => {
+      const span = document.createElement("span");
+      span.textContent = numero;
+      span.classList.add("numero");
+      historialDiv.appendChild(span);
+    });
+
+    // Botón para sacar número
+    document.getElementById("sacarNumero").addEventListener("click", () => {
+      socket.emit("sacarNumero"); // envía al servidor
+    });
+  </script>
+</body>
+</html>

@@ -2,20 +2,42 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Bingo Jugador</title>
+  <title>TUBIngo</title>
   <style>
     table {
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-width: thick;
+      border-color: black;
+      border-radius: 8%;
+      aspect-ratio: 1 / 1;   /* <-- NUEVO: cuadrado siempre */
       margin: 20px auto;
+      width: 95vw;           /* Hace la tabla casi tan ancha como la pantalla */
+      max-width: 800px;      /* Limita el ancho máximo en pantallas grandes */
     }
     td {
       border: 1px solid black;
-      width: 120px;
-      height: 90px;
+      width: 22vw;
+      max-width: 150px;
+      aspect-ratio: 1 / 1;   /* <-- NUEVO: cuadrado siempre */
+      height: auto;          /* <-- NUEVO: deja que aspect-ratio controle */
       text-align: center;
       vertical-align: middle;
       cursor: pointer;
       padding: 5px;
+      box-sizing: border-box;
+      font-size: 4vw;
+}
+    @media (max-width: 500px) {
+      table {
+        max-width: 98vw;
+      }
+      td {
+        width: 22vw;
+        height: 22vw;
+        max-width: none;
+        max-height: none;
+        font-size: 5vw;
+      }
     }
     td.marcado {
       background-color: yellow;
@@ -23,23 +45,24 @@
     #avisos {
       text-align: center;
       margin-top: 20px;
-      font-size: 20px;
+      font-size: 5vw;
       font-weight: bold;
       color: green;
     }
     .numero {
       font-weight: bold;
-      font-size: 16px;
+      font-size: 14px;
     }
     .momento {
-      font-size: 12px;
-      margin-top: 5px;
+      font-size: 14px;
+      margin-top: 0px;
       display: block;
     }
   </style>
 </head>
 <body>
-  <h1 style="text-align:center;">Cartón de Bingo</h1>
+  <h1 style="text-align:center;">TUBIngo</h1>
+  <h3 style="text-align:center;">Juguemos un Bingo de TUGO. Marcá los momentos que vayan apareciendo en vivo.</h3>
   <table id="carton"></table>
   <div id="avisos"></div>
 
@@ -57,15 +80,15 @@
       const numeros = Array.from({ length: total }, (_, i) => i + 1);
       numeros.sort(() => Math.random() - 0.5);
 
-      // Tomar los primeros 25
-      carton = numeros.slice(0, 25);
+      // Tomar los primeros 16
+      carton = numeros.slice(0, 16);
 
       const tabla = document.getElementById("carton");
       let idx = 0;
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 4; i++) {
         const fila = document.createElement("tr");
-        for (let j = 0; j < 5; j++) {
+        for (let j = 0; j < 4; j++) {
           const numero = carton[idx];
           const momento = momentos.find(m => m.numero === numero);
 
@@ -91,42 +114,44 @@
 
     // Verificar bingo
     function verificarBingo() {
-      const filas = document.querySelectorAll("#carton tr");
-      const ganadores = [];
+  const filas = document.querySelectorAll("#carton tr");
+  const size = 4; // <-- Tamaño del cartón
 
-      // Filas
-      filas.forEach((fila, i) => {
-        if ([...fila.children].every(td => td.classList.contains("marcado"))) {
-          ganadores.push(`Bingo en fila ${i + 1}`);
-        }
-      });
+  const ganadores = [];
 
-      // Columnas
-      for (let j = 0; j < 5; j++) {
-        const col = [...filas].map(fila => fila.children[j]);
-        if (col.every(td => td.classList.contains("marcado"))) {
-          ganadores.push(`Bingo en columna ${j + 1}`);
-        }
+    // Filas
+    filas.forEach((fila, i) => {
+      if ([...fila.children].every(td => td.classList.contains("marcado"))) {
+        ganadores.push(`Bingo en fila ${i + 1}`);
       }
+    });
 
-      // Diagonales
-      const diag1 = [...filas].map((fila, i) => fila.children[i]);
-      if (diag1.every(td => td.classList.contains("marcado"))) {
-        ganadores.push("Bingo en diagonal principal");
+    // Columnas
+    for (let j = 0; j < size; j++) { // <-- Cambia 5 por size
+      const col = [...filas].map(fila => fila.children[j]);
+      if (col.every(td => td.classList.contains("marcado"))) {
+        ganadores.push(`Bingo en columna ${j + 1}`);
       }
-      const diag2 = [...filas].map((fila, i) => fila.children[4 - i]);
-      if (diag2.every(td => td.classList.contains("marcado"))) {
-        ganadores.push("Bingo en diagonal secundaria");
-      }
-
-      // Cartón lleno
-      const todas = [...document.querySelectorAll("#carton td")];
-      if (todas.every(td => td.classList.contains("marcado"))) {
-        ganadores.push("¡Cartón lleno!");
-      }
-
-      mostrarAvisos(ganadores);
     }
+
+    // Diagonales
+    const diag1 = [...filas].map((fila, i) => fila.children[i]);
+    if (diag1.every(td => td.classList.contains("marcado"))) {
+      ganadores.push("Bingo en diagonal principal");
+    }
+    const diag2 = [...filas].map((fila, i) => fila.children[size - 1 - i]); // <-- Cambia 4 por size - 1
+    if (diag2.every(td => td.classList.contains("marcado"))) {
+      ganadores.push("Bingo en diagonal secundaria");
+    }
+
+    // Cartón lleno
+    const todas = [...document.querySelectorAll("#carton td")];
+    if (todas.every(td => td.classList.contains("marcado"))) {
+      ganadores.push("¡Cartón lleno!");
+    }
+
+    mostrarAvisos(ganadores);
+  }
 
     function mostrarAvisos(mensajes) {
       const avisosDiv = document.getElementById("avisos");
